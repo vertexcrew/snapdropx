@@ -111,10 +111,10 @@ Self-signed SSL may show browser warning (expected)
 📝 License
 MIT License
 
-❤️ Author
+❤️ Author :
 
 
-Made with ❤️ by Rayan
+Made with ❤️ by Rayan.
 
 
 GitHub: https://github.com/vertexcrew
