@@ -26,7 +26,8 @@ Perfect for quickly sharing files between machines or within a local network.
 
 ## 🖥️ Preview
 
-![SnapDropX Web UI](assets/ui.png)
+![SnapDropX Web UI](https://raw.githubusercontent.com/vertexcrew/snapdropx/main/assets/ui.png)
+
 
 > Clean, modern, mobile-friendly interface with drag-and-drop uploads.
 
