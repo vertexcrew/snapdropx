@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>SnapDropX • Secure File Drop</title>
+
+    <!-- SnapDropX Styles -->
+    <link rel="stylesheet" href="/static/style.css">
+
+    <!-- Extra styles for drop icon -->
+    <style>
+        .drop-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            color: #8b5cf6;
+            opacity: 0.9;
+            transition: transform 0.25s ease, opacity 0.25s ease;
+        }
+
+        .drop-zone.drag .drop-icon {
+            transform: scale(1.15);
+            opacity: 1;
+        }
+
+        .drop-icon svg {
+            width: 64px;
+            height: 64px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- =========================
+         HEADER
+    ========================= -->
+    <header>
+        <h1>🚀 SnapDropX</h1>
+        <p>Secure • Zero-Config • Local File Drop Server</p>
+    </header>
+
+    <!-- =========================
+         STATUS BAR
+    ========================= -->
+    <div class="status-bar">
+        🔒 Secure session active • {{ items|length }} items • Path sandboxed
+    </div>
+
+    <!-- =========================
+         SEARCH + UPLOAD
+    ========================= -->
+    <div class="search-upload">
+        <input
+            type="text"
+            id="searchInput"
+            placeholder="Search files or folders…"
+        >
+        <button class="btn" onclick="fileInput.click()">📤 Upload</button>
+        <input type="file" id="fileInput" multiple hidden>
+    </div>
+
+    <!-- =========================
+         DROP ZONE
+    ========================= -->
+    <div class="drop-zone" id="dropZone">
+
+        <!-- FILE UPLOAD ICON -->
+        <div class="drop-icon">
+            <svg viewBox="0 0 24 24" fill="none"
+                 xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 16V4M12 4L7 9M12 4L17 9"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"/>
+                <path d="M4 16V20H20V16"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"/>
+            </svg>
+        </div>
+
+        <h2>Drag & drop files here</h2>
+        <p>Secure upload • No traversal • Session protected</p>
+    </div>
+
+    <!-- =========================
+         FILE LIST
+    ========================= -->
+    <div class="files">
+        {% if items %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Size</th>
+                    <th>Modified</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="fileBody">
+                {% for item in items %}
+                <tr data-name="{{ item.name|lower }}">
+                    <td>
+                        {% if item.is_dir %}
+                            <span class="file-badge folder">📁 FOLDER</span>
+                            <a
+                                href="/browse/{{ item.path }}"
+                                style="margin-left:10px;color:#93c5fd;text-decoration:none;"
+                            >
+                                {{ item.name }}
+                            </a>
+                        {% else %}
+                            <span class="file-badge file">
+                                {{ item.name.split('.')[-1]|upper }}
+                            </span>
+                            <span style="margin-left:10px">{{ item.name }}</span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {{ format_size(item.size) if not item.is_dir else "-" }}
+                    </td>
+
+                    <td>
+                        {{ item.modified.strftime('%Y-%m-%d %H:%M') }}
+                    </td>
+
+                    <td>
+                        {% if not item.is_dir %}
+                            <a class="download" href="/download/{{ item.path }}">
+                                DOWNLOAD
+                            </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+            <p style="text-align:center;color:#64748b;">
+                📭 This directory is empty
+            </p>
+        {% endif %}
+    </div>
+
+    <!-- =========================
+         FOOTER
+    ========================= -->
+    <footer>
+        ⚡ Powered by <span>SnapDropX</span> • Local-First • Secure by Design
+    </footer>
+
+</div>
+
+<!-- =========================
+     JAVASCRIPT
+========================= -->
+<script>
+    const dropZone = document.getElementById("dropZone");
+    const fileInput = document.getElementById("fileInput");
+    const searchInput = document.getElementById("searchInput");
+    const currentPath = "{{ current_path }}";
+
+    dropZone.onclick = () => fileInput.click();
+
+    dropZone.addEventListener("dragover", e => {
+        e.preventDefault();
+        dropZone.classList.add("drag");
+    });
+
+    dropZone.addEventListener("dragleave", () => {
+        dropZone.classList.remove("drag");
+    });
+
+    dropZone.addEventListener("drop", e => {
+        e.preventDefault();
+        dropZone.classList.remove("drag");
+        uploadFiles(e.dataTransfer.files);
+    });
+
+    fileInput.onchange = e => uploadFiles(e.target.files);
+
+    async function uploadFiles(files) {
+        if (!files.length) return;
+        const fd = new FormData();
+        for (const f of files) fd.append("files", f);
+        fd.append("path", currentPath);
+        await fetch("/upload", { method: "POST", body: fd });
+        location.reload();
+    }
+
+    searchInput.addEventListener("input", () => {
+        const val = searchInput.value.toLowerCase();
+        document.querySelectorAll("#fileBody tr").forEach(row => {
+            row.style.display = row.dataset.name.includes(val) ? "" : "none";
+        });
+    });
+</script>
+
+</body>
+</html>

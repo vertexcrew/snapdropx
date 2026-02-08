@@ -1,0 +1,268 @@
+/* =========================================================
+   SnapDropX – Secure File Drop UI
+   Theme: Dark / Neon / Modern
+========================================================= */
+
+/* =========================
+   GLOBAL RESET
+========================= */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+        Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+body {
+    background: radial-gradient(circle at top, #1e1b4b, #020617);
+    min-height: 100vh;
+    color: #e5e7eb;
+    padding: 20px;
+}
+
+/* =========================
+   MAIN CONTAINER
+========================= */
+.container {
+    max-width: 1200px;
+    margin: auto;
+    background: #020617;
+    border-radius: 18px;
+    border: 1px solid #1e293b;
+    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.65);
+    overflow: hidden;
+}
+
+/* =========================
+   HEADER
+========================= */
+header {
+    padding: 32px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+}
+
+header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+
+header h1 span {
+    opacity: 0.9;
+    font-weight: 600;
+}
+
+header p {
+    margin-top: 6px;
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+/* =========================
+   STATUS BAR
+========================= */
+.status-bar {
+    padding: 10px 30px;
+    background: #020617;
+    border-bottom: 1px solid #1e293b;
+    font-size: 13px;
+    color: #94a3b8;
+}
+
+/* =========================
+   SEARCH + UPLOAD BAR
+========================= */
+.search-upload {
+    padding: 20px 30px;
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    align-items: center;
+    border-bottom: 1px solid #1e293b;
+}
+
+.search-upload input {
+    flex: 1;
+    min-width: 220px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid #1e293b;
+    background: #020617;
+    color: #e5e7eb;
+    transition: 0.2s;
+}
+
+.search-upload input::placeholder {
+    color: #64748b;
+}
+
+.search-upload input:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
+}
+
+/* =========================
+   BUTTONS
+========================= */
+.btn {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    border: none;
+    padding: 12px 22px;
+    border-radius: 10px;
+    color: white;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.25s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 30px rgba(99, 102, 241, 0.45);
+}
+
+/* =========================
+   DROP ZONE
+========================= */
+.drop-zone {
+    margin: 30px;
+    padding: 70px 20px;
+    border: 2px dashed #334155;
+    border-radius: 18px;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.3s;
+    background: linear-gradient(
+        180deg,
+        rgba(2, 6, 23, 0.9),
+        rgba(2, 6, 23, 0.6)
+    );
+}
+
+.drop-zone.drag {
+    border-color: #8b5cf6;
+    background: #0f172a;
+    box-shadow: inset 0 0 0 1px #8b5cf6;
+}
+
+.drop-zone h2 {
+    font-size: 22px;
+    margin-bottom: 12px;
+}
+
+.drop-zone p {
+    font-size: 13px;
+    color: #94a3b8;
+}
+
+/* =========================
+   FILE TABLE
+========================= */
+.files {
+    padding: 30px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+thead {
+    background: #020617;
+}
+
+th {
+    text-align: left;
+    padding: 12px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #94a3b8;
+}
+
+td {
+    padding: 14px 12px;
+    border-bottom: 1px solid #1e293b;
+    font-size: 14px;
+}
+
+tr:hover {
+    background: #0f172a;
+}
+
+/* =========================
+   FILE TYPE BADGES
+========================= */
+.file-badge {
+    padding: 4px 9px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.folder {
+    background: rgba(20, 184, 166, 0.15);
+    color: #5eead4;
+}
+
+.file {
+    background: rgba(59, 130, 246, 0.15);
+    color: #93c5fd;
+}
+
+/* =========================
+   DOWNLOAD BUTTON
+========================= */
+.download {
+    background: #22c55e;
+    color: #022c22;
+    padding: 7px 12px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 800;
+    transition: 0.2s;
+}
+
+.download:hover {
+    background: #16a34a;
+}
+
+/* =========================
+   FOOTER
+========================= */
+footer {
+    text-align: center;
+    padding: 22px;
+    font-size: 12px;
+    color: #64748b;
+    border-top: 1px solid #1e293b;
+}
+
+footer span {
+    color: #a5b4fc;
+    font-weight: 600;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+@media (max-width: 768px) {
+    header h1 {
+        font-size: 22px;
+    }
+
+    .drop-zone {
+        padding: 45px 15px;
+    }
+
+    .files {
+        padding: 15px;
+    }
+}
+.drop-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+    opacity: 0.9;
+}
