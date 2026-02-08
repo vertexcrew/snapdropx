@@ -39,7 +39,7 @@ pip install -e .
 Start server (current directory)
 snapdropx
 
-Open in browser:
+## Open in browser:
 http://localhost:8000
 
 Serve specific directory
@@ -94,25 +94,6 @@ pip install -e ".[dev]"
 
 Run tests
 pytest tests/ -v
-
-## 📁 Project Structure
-snapdropx/
-├── src/
-│   └── snapdropx/
-│       ├── __init__.py
-│       ├── main.py        # CLI entrypoint
-│       ├── server.py      # FastAPI app
-│       ├── security.py    # Auth & path safety
-│       ├── static/
-│       │   └── style.css
-│       └── templates/
-│           └── index.html
-├── tests/
-│   └── test_snapdropx.py
-├── assets/
-│   └── ui.png
-├── pyproject.toml
-└── README.md
 
 🤝 Contributing
 git checkout -b feature/new-feature
