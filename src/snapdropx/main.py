@@ -10,14 +10,24 @@ from snapdropx.security import generate_self_signed_cert, parse_auth_string
 from snapdropx.server import SnapDropXServer
 
 
-app = typer.Typer(
+# =========================================
+# FastAPI app for Render/Vercel deployment
+# =========================================
+server = SnapDropXServer(Path("."), None, None)
+app = server.app
+
+
+# =========================================
+# Typer CLI app
+# =========================================
+cli = typer.Typer(
     name="snapdropx",
     help="🚀 SnapDropX – Secure, zero-config file drop server",
     add_completion=False,
 )
 
 
-@app.command()
+@cli.command()
 def serve(
     path: Path = typer.Argument(
         Path("."),
@@ -59,11 +69,9 @@ def serve(
     Start the SnapDropX file server.
     """
 
-    # =========================
-    # Parse authentication
-    # =========================
     username = None
     password = None
+
     if auth:
         try:
             username, password = parse_auth_string(auth)
@@ -71,42 +79,34 @@ def serve(
             typer.echo(f"❌ Error: {e}", err=True)
             raise typer.Exit(1)
 
-    # =========================
-    # SSL handling
-    # =========================
     ssl_certfile = None
     ssl_keyfile = None
+
     if ssl:
         typer.echo("🔐 Generating self-signed SSL certificate...")
         ssl_certfile, ssl_keyfile = generate_self_signed_cert()
         typer.echo("✅ SSL certificate generated")
 
-    # =========================
-    # Startup info
-    # =========================
     protocol = "https" if ssl else "http"
+
     typer.echo("")
     typer.echo("🚀 Starting SnapDropX")
     typer.echo("─" * 50)
     typer.echo(f"📁 Serving: {path.absolute()}")
     typer.echo(f"🌐 URL: {protocol}://{host}:{port}")
+
     if username:
         typer.echo(f"🔒 Auth: Enabled (user: {username})")
     else:
         typer.echo("🔓 Auth: Disabled (public access)")
+
     typer.echo("─" * 50)
     typer.echo("💡 Press Ctrl+C to stop")
     typer.echo("")
 
-    # =========================
-    # Create FastAPI app
-    # =========================
     server = SnapDropXServer(path, username, password)
     fastapi_app = server.app
 
-    # =========================
-    # Run server
-    # =========================
     try:
         uvicorn.run(
             fastapi_app,
@@ -117,21 +117,30 @@ def serve(
             reload=reload,
             log_level="info",
         )
+
     except KeyboardInterrupt:
         typer.echo("\n👋 Shutting down SnapDropX")
         raise typer.Exit(0)
+
     finally:
         if ssl_certfile:
             Path(ssl_certfile).unlink(missing_ok=True)
+
         if ssl_keyfile:
             Path(ssl_keyfile).unlink(missing_ok=True)
 
 
-@app.command()
+@cli.command()
 def version():
     """Show SnapDropX version."""
     typer.echo("SnapDropX v1.0.0")
 
 
 if __name__ == "__main__":
-    app()
+    cli()
+
+
+
+
+
+
