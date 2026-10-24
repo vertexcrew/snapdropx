@@ -1,14 +1,15 @@
-"""Test suite for Skyhook security and functionality."""
+"""Test suite for SnapDropX security and functionality."""
 
-import os
+import io
 import tempfile
+import zipfile
 from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
 
-from skyhook.security import parse_auth_string, sanitize_path
-from skyhook.server import create_app
+from snapdropx.security import parse_auth_string, sanitize_path
+from snapdropx.server import create_app
 
 
 @pytest.fixture
@@ -66,7 +67,7 @@ class TestSecurity:
     
     def test_parse_auth_string_invalid_format(self):
         """Test parsing invalid auth string."""
-        with pytest.raises(ValueError, match="Invalid auth format"):
+        with pytest.raises(ValueError, match="Auth format must be username:password"):
             parse_auth_string("invalid")
     
     def test_parse_auth_string_empty_username(self):
@@ -234,7 +235,7 @@ class TestFileUpload:
 
 class TestHealthCheck:
     """Test health check endpoint."""
-    
+
     def test_health_endpoint(self, client_no_auth):
         """Test health check endpoint."""
         response = client_no_auth.get("/health")
@@ -242,6 +243,213 @@ class TestHealthCheck:
         data = response.json()
         assert data["status"] == "healthy"
         assert "version" in data
+
+
+class TestNewEndpoints:
+    """Tests for the v2 endpoints: delete, mkdir, rename, preview, zip, API."""
+
+    def test_delete_file(self, client_no_auth, temp_dir):
+        response = client_no_auth.delete("/delete/test.txt")
+        assert response.status_code == 200
+        assert response.json()["deleted"] is True
+        assert not (temp_dir / "test.txt").exists()
+
+    def test_delete_empty_directory(self, client_no_auth, temp_dir):
+        (temp_dir / "empty").mkdir()
+        response = client_no_auth.delete("/delete/empty")
+        assert response.status_code == 200
+        assert not (temp_dir / "empty").exists()
+
+    def test_delete_nonempty_directory_refused(self, client_no_auth):
+        response = client_no_auth.delete("/delete/subdir")
+        assert response.status_code == 400
+
+    def test_delete_missing_path(self, client_no_auth):
+        response = client_no_auth.delete("/delete/nope.txt")
+        assert response.status_code == 404
+
+    def test_mkdir(self, client_no_auth, temp_dir):
+        response = client_no_auth.post(
+            "/mkdir", data={"path": "", "name": "newfolder"}
+        )
+        assert response.status_code == 200
+        assert (temp_dir / "newfolder").is_dir()
+
+    def test_mkdir_rejects_slashes_and_dots(self, client_no_auth):
+        assert client_no_auth.post(
+            "/mkdir", data={"path": "", "name": "a/b"}
+        ).status_code == 400
+        assert client_no_auth.post(
+            "/mkdir", data={"path": "", "name": ".hidden"}
+        ).status_code == 400
+
+    def test_rename_file(self, client_no_auth, temp_dir):
+        response = client_no_auth.post(
+            "/rename", json={"path": "test.txt", "new_name": "renamed.txt"}
+        )
+        assert response.status_code == 200
+        assert response.json()["new_path"] == "renamed.txt"
+        assert (temp_dir / "renamed.txt").exists()
+        assert not (temp_dir / "test.txt").exists()
+
+    def test_rename_rejects_bad_name(self, client_no_auth):
+        response = client_no_auth.post(
+            "/rename", json={"path": "test.txt", "new_name": "../evil"}
+        )
+        assert response.status_code == 400
+
+    def test_preview_text_inline(self, client_no_auth):
+        response = client_no_auth.get("/preview/test.txt")
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith("text/plain")
+        assert "inline" in response.headers["content-disposition"]
+        assert response.text == "Hello, World!"
+
+    def test_preview_image_inline(self, client_no_auth, temp_dir):
+        # Minimal 1x1 PNG.
+        png = bytes.fromhex(
+            "89504e470d0a1a0a0000000d4948445200000001000000010802000000907753de"
+            "0000000a49444154789c6360000000020001e221bc330000000049454e44ae426082"
+        )
+        (temp_dir / "dot.png").write_bytes(png)
+        response = client_no_auth.get("/preview/dot.png")
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith("image/png")
+        assert "inline" in response.headers["content-disposition"]
+
+    def test_preview_binary_falls_back_to_download(self, client_no_auth, temp_dir):
+        (temp_dir / "blob.bin").write_bytes(bytes(range(256)))
+        response = client_no_auth.get("/preview/blob.bin")
+        assert response.status_code == 200
+        assert "attachment" in response.headers["content-disposition"]
+
+    def test_zip_directory(self, client_no_auth):
+        response = client_no_auth.get("/zip/subdir")
+        assert response.status_code == 200
+        assert response.headers["content-type"] == "application/zip"
+        with zipfile.ZipFile(io.BytesIO(response.content)) as zf:
+            assert "nested.txt" in zf.namelist()
+
+    def test_zip_root(self, client_no_auth):
+        response = client_no_auth.get("/zip")
+        assert response.status_code == 200
+        with zipfile.ZipFile(io.BytesIO(response.content)) as zf:
+            assert "test.txt" in zf.namelist()
+
+    def test_zip_file_refused(self, client_no_auth):
+        response = client_no_auth.get("/zip/test.txt")
+        assert response.status_code == 400
+
+    def test_api_files(self, client_no_auth):
+        response = client_no_auth.get("/api/files", params={"path": "subdir"})
+        assert response.status_code == 200
+        data = response.json()
+        assert data["path"] == "subdir"
+        names = [item["name"] for item in data["items"]]
+        assert "nested.txt" in names
+
+    def test_api_stats(self, client_no_auth):
+        response = client_no_auth.get("/api/stats")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["files"] == 2  # test.txt + subdir/nested.txt
+        assert data["folders"] == 1
+        assert data["total_size"] > 0
+        assert data["total_size_human"]
+
+    def test_upload_duplicate_name_renumbered(self, client_no_auth, temp_dir):
+        files = {"files": ("test.txt", b"Second copy", "text/plain")}
+        response = client_no_auth.post("/upload", files=files)
+        assert response.status_code == 200
+        uploaded = response.json()["uploaded"]
+        assert uploaded[0]["filename"] == "test (1).txt"
+        assert (temp_dir / "test (1).txt").read_text() == "Second copy"
+        # Original untouched.
+        assert (temp_dir / "test.txt").read_text() == "Hello, World!"
+
+    def test_upload_into_subfolder_via_form_path(self, client_no_auth, temp_dir):
+        files = {"files": ("inner.txt", b"Inner", "text/plain")}
+        response = client_no_auth.post(
+            "/upload", files=files, data={"path": "subdir"}
+        )
+        assert response.status_code == 200
+        assert (temp_dir / "subdir" / "inner.txt").exists()
+
+    def test_upload_oversize_rejected(self, temp_dir):
+        app = create_app(temp_dir, max_upload_mb=0.001)  # ~1 KB cap
+        client = TestClient(app)
+        files = {"files": ("big.txt", b"x" * 4096, "text/plain")}
+        response = client.post("/upload", files=files)
+        assert response.status_code == 200
+        result = response.json()
+        assert result["failed"] == 1
+        assert "exceeds" in result["errors"][0]["error"]
+        assert not (temp_dir / "big.txt").exists()
+
+    def test_new_endpoints_require_auth(self, client_with_auth):
+        assert client_with_auth.delete("/delete/test.txt").status_code == 401
+        assert client_with_auth.get("/api/stats").status_code == 401
+        response = client_with_auth.get(
+            "/api/stats", auth=("testuser", "testpass")
+        )
+        assert response.status_code == 200
+
+
+class TestAuthGatesEveryRoute:
+    """When auth is on, NO file-serving route may answer anonymously.
+
+    This is the deployment guarantee: a public instance protected by
+    SNAPDROPX_AUTH must reject unauthenticated visitors on every route
+    that touches files, not just the HTML pages.
+    """
+
+    @pytest.mark.parametrize(
+        "method,url",
+        [
+            ("GET", "/"),
+            ("GET", "/browse/subdir"),
+            ("GET", "/download/test.txt"),
+            ("GET", "/preview/test.txt"),
+            ("GET", "/zip"),
+            ("GET", "/zip/subdir"),
+            ("GET", "/api/files"),
+            ("GET", "/api/stats"),
+            ("DELETE", "/delete/test.txt"),
+        ],
+    )
+    def test_unauthenticated_get_delete_rejected(
+        self, client_with_auth, method, url
+    ):
+        response = client_with_auth.request(method, url)
+        assert response.status_code == 401
+
+    @pytest.mark.parametrize("url", ["/upload", "/mkdir", "/rename"])
+    def test_unauthenticated_posts_rejected(self, client_with_auth, url):
+        if url == "/upload":
+            response = client_with_auth.post(
+                url, files={"files": ("x.txt", b"x", "text/plain")}
+            )
+        elif url == "/mkdir":
+            response = client_with_auth.post(
+                url, data={"path": "", "name": "newdir"}
+            )
+        else:
+            response = client_with_auth.post(
+                url, json={"path": "test.txt", "new_name": "y.txt"}
+            )
+        assert response.status_code == 401
+
+    def test_authenticated_file_routes_work(self, client_with_auth):
+        auth = ("testuser", "testpass")
+        assert client_with_auth.get("/download/test.txt", auth=auth).status_code == 200
+        assert client_with_auth.get("/preview/test.txt", auth=auth).status_code == 200
+        assert client_with_auth.get("/zip/subdir", auth=auth).status_code == 200
+        assert client_with_auth.get("/api/files", auth=auth).status_code == 200
+
+    def test_health_stays_public(self, client_with_auth):
+        # /health is deliberately unauthenticated: platform health checks
+        # (Render etc.) need it, and it exposes no file data.
+        assert client_with_auth.get("/health").status_code == 200
 
 
 if __name__ == "__main__":
