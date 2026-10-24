@@ -230,6 +230,147 @@ tr:hover {
 }
 
 /* =========================
+   STATS LINE (v2.0.0)
+========================= */
+.stats-line {
+    padding: 8px 30px;
+    background: #020617;
+    border-bottom: 1px solid #1e293b;
+    font-size: 13px;
+    color: #a5b4fc;
+}
+
+/* =========================
+   SECONDARY BUTTON (v2.0.0)
+========================= */
+.btn-secondary {
+    background: #1e293b;
+    border: 1px solid #334155;
+}
+
+.btn-secondary:hover {
+    box-shadow: none;
+    background: #334155;
+}
+
+/* =========================
+   SMALL ACTION BUTTONS (v2.0.0)
+========================= */
+.actions {
+    white-space: nowrap;
+}
+
+.btn-small {
+    background: #1e293b;
+    color: #e5e7eb;
+    border: 1px solid #334155;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    margin-right: 6px;
+}
+
+.btn-small:hover {
+    background: #334155;
+}
+
+.btn-danger {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.4);
+    color: #fca5a5;
+}
+
+.btn-danger:hover {
+    background: rgba(239, 68, 68, 0.3);
+}
+
+/* =========================
+   UPLOAD PROGRESS (v2.0.0)
+========================= */
+.progress-wrap {
+    position: relative;
+    margin: 0 30px 20px;
+    height: 26px;
+    border-radius: 10px;
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    transition: width 0.15s ease;
+}
+
+.progress-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+/* =========================
+   PREVIEW MODAL (v2.0.0)
+========================= */
+.modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(2, 6, 23, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+.modal[hidden] {
+    display: none;
+}
+
+.modal-content {
+    position: relative;
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow: auto;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 14px;
+    padding: 24px;
+}
+
+.modal-close {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+.preview-img {
+    max-width: 80vw;
+    max-height: 75vh;
+    border-radius: 8px;
+}
+
+.preview-text {
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 13px;
+    color: #e5e7eb;
+    max-width: 80vw;
+}
+
+/* =========================
    FOOTER
 ========================= */
 footer {
