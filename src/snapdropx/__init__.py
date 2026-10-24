@@ -14,7 +14,7 @@ License: MIT
 # Package Metadata
 # =========================
 __title__ = "snapdropx"
-__version__ = "1.0.0"
+__version__ = "2.0.0"
 __author__ = "SnapDropX Contributors"
 __license__ = "MIT"
 __description__ = (

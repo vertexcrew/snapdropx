@@ -3,7 +3,7 @@
 import os
 import secrets
 import tempfile
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional, Tuple
 
@@ -14,8 +14,10 @@ from cryptography.x509.oid import NameOID
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
-# HTTP Basic auth handler
-security = HTTPBasic()
+# HTTP Basic auth handler. auto_error=False so public servers (auth
+# disabled) do not force a login prompt on every request; AuthManager
+# raises 401 itself only when auth is enabled and credentials are bad.
+security = HTTPBasic(auto_error=False)
 
 
 class AuthManager:
@@ -32,11 +34,18 @@ class AuthManager:
 
     def verify_credentials(
         self,
-        credentials: HTTPBasicCredentials = Depends(security),
+        credentials: Optional[HTTPBasicCredentials] = Depends(security),
     ) -> bool:
         """Verify HTTP Basic Auth credentials."""
         if not self.enabled:
             return True
+
+        if credentials is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid credentials",
+                headers={"WWW-Authenticate": "Basic"},
+            )
 
         username_ok = secrets.compare_digest(
             credentials.username,
@@ -61,6 +70,13 @@ class AuthManager:
 # Path Sanitization
 # =========================
 def sanitize_path(base_path: Path, requested_path: str) -> Path:
+    # Absolute filesystem paths are never valid here: every route deals
+    # in paths relative to the served directory.
+    if Path(requested_path).is_absolute():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied (path traversal)",
+        )
     requested_path = requested_path.lstrip("/")
     full_path = (base_path / requested_path).resolve()
 
@@ -98,8 +114,8 @@ def generate_self_signed_cert() -> Tuple[str, str]:
         .issuer_name(issuer)
         .public_key(private_key.public_key())
         .serial_number(x509.random_serial_number())
-        .not_valid_before(datetime.utcnow())
-        .not_valid_after(datetime.utcnow() + timedelta(days=365))
+        .not_valid_before(datetime.now(timezone.utc))
+        .not_valid_after(datetime.now(timezone.utc) + timedelta(days=365))
         .add_extension(
             x509.SubjectAlternativeName(
                 [x509.DNSName("localhost")]
