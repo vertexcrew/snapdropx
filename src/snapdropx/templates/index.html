@@ -51,6 +51,13 @@
     </div>
 
     <!-- =========================
+         STATS LINE (v2.0.0)
+    ========================= -->
+    <div class="stats-line" id="statsLine">
+        📊 Loading stats…
+    </div>
+
+    <!-- =========================
          SEARCH + UPLOAD
     ========================= -->
     <div class="search-upload">
@@ -60,6 +67,7 @@
             placeholder="Search files or folders…"
         >
         <button class="btn" onclick="fileInput.click()">📤 Upload</button>
+        <button class="btn btn-secondary" onclick="createFolder()">📁 New Folder</button>
         <input type="file" id="fileInput" multiple hidden>
     </div>
 
@@ -90,6 +98,14 @@
     </div>
 
     <!-- =========================
+         UPLOAD PROGRESS (v2.0.0)
+    ========================= -->
+    <div class="progress-wrap" id="progressWrap" hidden>
+        <div class="progress-bar" id="progressBar"></div>
+        <span class="progress-text" id="progressText">0%</span>
+    </div>
+
+    <!-- =========================
          FILE LIST
     ========================= -->
     <div class="files">
@@ -105,7 +121,7 @@
             </thead>
             <tbody id="fileBody">
                 {% for item in items %}
-                <tr data-name="{{ item.name|lower }}">
+                <tr data-name="{{ item.name|lower }}" data-path="{{ item.path }}">
                     <td>
                         {% if item.is_dir %}
                             <span class="file-badge folder">📁 FOLDER</span>
@@ -131,12 +147,25 @@
                         {{ item.modified.strftime('%Y-%m-%d %H:%M') }}
                     </td>
 
-                    <td>
-                        {% if not item.is_dir %}
+                    <td class="actions">
+                        {% if item.is_dir %}
+                            <a class="btn-small" href="/zip/{{ item.path }}">
+                                📦 ZIP
+                            </a>
+                        {% else %}
                             <a class="download" href="/download/{{ item.path }}">
                                 DOWNLOAD
                             </a>
+                            <button class="btn-small" onclick="previewItem('{{ item.path }}')">
+                                👁 Preview
+                            </button>
                         {% endif %}
+                        <button class="btn-small" onclick="renameItem('{{ item.path }}', '{{ item.name }}')">
+                            ✏️ Rename
+                        </button>
+                        <button class="btn-small btn-danger" onclick="deleteItem('{{ item.path }}', '{{ item.name }}')">
+                            🗑 Delete
+                        </button>
                     </td>
                 </tr>
                 {% endfor %}
@@ -147,6 +176,16 @@
                 📭 This directory is empty
             </p>
         {% endif %}
+    </div>
+
+    <!-- =========================
+         PREVIEW MODAL (v2.0.0)
+    ========================= -->
+    <div class="modal" id="previewModal" hidden>
+        <div class="modal-content">
+            <button class="modal-close" onclick="closePreview()">✕</button>
+            <div id="previewBody"></div>
+        </div>
     </div>
 
     <!-- =========================
@@ -186,14 +225,132 @@
 
     fileInput.onchange = e => uploadFiles(e.target.files);
 
-    async function uploadFiles(files) {
+    // Upload with XHR so we can show a live progress bar instead of
+    // freezing the page until the upload finishes.
+    function uploadFiles(files) {
         if (!files.length) return;
         const fd = new FormData();
         for (const f of files) fd.append("files", f);
         fd.append("path", currentPath);
-        await fetch("/upload", { method: "POST", body: fd });
+
+        const wrap = document.getElementById("progressWrap");
+        const bar = document.getElementById("progressBar");
+        const text = document.getElementById("progressText");
+        wrap.hidden = false;
+        bar.style.width = "0%";
+        text.textContent = "0%";
+
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", "/upload");
+        xhr.upload.onprogress = e => {
+            if (!e.lengthComputable) return;
+            const pct = Math.round((e.loaded / e.total) * 100);
+            bar.style.width = pct + "%";
+            text.textContent = pct + "%";
+        };
+        xhr.onload = () => location.reload();
+        xhr.onerror = () => {
+            wrap.hidden = true;
+            alert("Upload failed. Please try again.");
+        };
+        xhr.send(fd);
+    }
+
+    async function createFolder() {
+        const name = prompt("New folder name:");
+        if (!name) return;
+        const fd = new FormData();
+        fd.append("path", currentPath);
+        fd.append("name", name);
+        const res = await fetch("/mkdir", { method: "POST", body: fd });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            alert("Could not create folder: " + (err.detail || res.status));
+            return;
+        }
         location.reload();
     }
+
+    async function renameItem(path, oldName) {
+        const name = prompt("Rename to:", oldName);
+        if (!name || name === oldName) return;
+        const res = await fetch("/rename", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ path, new_name: name }),
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            alert("Could not rename: " + (err.detail || res.status));
+            return;
+        }
+        location.reload();
+    }
+
+    async function deleteItem(path, name) {
+        if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+        const res = await fetch("/delete/" + encodeURIComponent(path).replace(/%2F/g, "/"), {
+            method: "DELETE",
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            alert("Could not delete: " + (err.detail || res.status));
+            return;
+        }
+        location.reload();
+    }
+
+    async function previewItem(path) {
+        const modal = document.getElementById("previewModal");
+        const body = document.getElementById("previewBody");
+        body.innerHTML = "<p>Loading preview…</p>";
+        modal.hidden = false;
+        const res = await fetch("/preview/" + encodeURIComponent(path).replace(/%2F/g, "/"));
+        if (!res.ok) {
+            body.innerHTML = "<p>Preview unavailable.</p>";
+            return;
+        }
+        const type = res.headers.get("content-type") || "";
+        if (type.startsWith("image/")) {
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            body.innerHTML = "";
+            const img = document.createElement("img");
+            img.src = url;
+            img.className = "preview-img";
+            body.appendChild(img);
+        } else if (type.startsWith("text/")) {
+            const text = await res.text();
+            const pre = document.createElement("pre");
+            pre.className = "preview-text";
+            pre.textContent = text;
+            body.innerHTML = "";
+            body.appendChild(pre);
+        } else {
+            body.innerHTML = `<p>Preview not available for this file type.</p>
+                <a class="download" href="/download/${path}">DOWNLOAD</a>`;
+        }
+    }
+
+    function closePreview() {
+        document.getElementById("previewModal").hidden = true;
+        document.getElementById("previewBody").innerHTML = "";
+    }
+
+    document.getElementById("previewModal").addEventListener("click", e => {
+        if (e.target.id === "previewModal") closePreview();
+    });
+
+    // Stats line: file/folder counts + total size, from /api/stats.
+    fetch("/api/stats")
+        .then(r => r.json())
+        .then(s => {
+            document.getElementById("statsLine").textContent =
+                `📊 ${s.files} files • ${s.folders} folders • ${s.total_size_human} total`;
+        })
+        .catch(() => {
+            document.getElementById("statsLine").textContent = "";
+        });
 
     searchInput.addEventListener("input", () => {
         const val = searchInput.value.toLowerCase();
