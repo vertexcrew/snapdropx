@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SnapDropX v2.0.0 — refreshed
 """Demo script to showcase SnapDropX features."""
 
 import tempfile
