@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>SnapDropX • Secure File Drop</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M24 3 C28 12 38 21 38 30 A14 14 0 1 1 10 30 C10 21 20 12 24 3 Z' fill='%238b5cf6'/%3E%3Cpath d='M18 25 L30 37 M30 25 L18 37' stroke='white' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
 
     <!-- SnapDropX Styles (inlined: Vercel serverless static serving is unreliable,
          so the theme ships inside the page itself) -->
@@ -423,6 +424,14 @@ footer span {
 
     <!-- Extra styles for drop icon -->
     <style>
+        .logo-mark {
+            width: 36px;
+            height: 36px;
+            vertical-align: -8px;
+            margin-right: 8px;
+            filter: drop-shadow(0 4px 12px rgba(99, 102, 241, 0.55));
+        }
+
         .drop-icon {
             font-size: 64px;
             margin-bottom: 16px;
@@ -451,7 +460,7 @@ footer span {
          HEADER
     ========================= -->
     <header>
-        <h1>🚀 SnapDropX</h1>
+        <h1><svg class="logo-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient></defs><path d="M24 3 C28 12 38 21 38 30 A14 14 0 1 1 10 30 C10 21 20 12 24 3 Z" fill="url(#lg)"/><path d="M18 25 L30 37 M30 25 L18 37" stroke="white" stroke-width="4" stroke-linecap="round"/></svg> SnapDropX</h1>
         <p>Secure • Zero-Config • Local File Drop Server</p>
     </header>
 
