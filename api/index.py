@@ -32,4 +32,29 @@ if not welcome.exists():
         "disappear — for permanent storage use the Render deployment.\n"
     )
 
-handler = Mangum(app)
+
+class StripApiPrefixMiddleware:
+    """Strip Vercel's rewrite destination from the request path.
+
+    vercel.json rewrites every path to /api/index.py, and on Vercel the
+    function can receive that rewritten path (e.g. /api/index.py or
+    /api/index.py/health) instead of the original URL. FastAPI has no route
+    for it, so every request answered {"detail": "Not Found"}. Stripping
+    the prefix restores the original path (/ or /health) before routing.
+    Local requests never start with /api/index.py, so this is a no-op
+    outside Vercel.
+    """
+
+    def __init__(self, wrapped_app):
+        self.wrapped_app = wrapped_app
+
+    async def __call__(self, scope, receive, send):
+        if scope.get("type") == "http":
+            path = scope.get("path", "")
+            if path == "/api/index.py" or path.startswith("/api/index.py/"):
+                stripped = path[len("/api/index.py"):] or "/"
+                scope = {**scope, "path": stripped, "raw_path": stripped.encode()}
+        await self.wrapped_app(scope, receive, send)
+
+
+handler = Mangum(StripApiPrefixMiddleware(app))
