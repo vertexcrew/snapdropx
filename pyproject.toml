@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "snapdropx"
-version = "1.0.0"
+version = "2.0.0"
 description = "SnapDropX is a secure, zero-config local file drop server with upload support and optional authentication"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -43,6 +43,7 @@ dependencies = [
     "jinja2>=3.1.2",
     "typer>=0.9.0",
     "cryptography>=41.0.0",
+    "mangum>=0.17.0",
 ]
 
 [project.optional-dependencies]
@@ -53,7 +54,7 @@ dev = [
 ]
 
 [project.scripts]
-snapdropx = "snapdropx.main:app"
+snapdropx = "snapdropx.main:cli"
 
 [project.urls]
 Homepage = "https://github.com/vertexcrew/snapdropx"

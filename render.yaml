@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: snapdropx
+    env: python
+    plan: free
+    buildCommand: pip install .
+    startCommand: uvicorn snapdropx.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PORT
+        value: "8000"
+      - key: PYTHON_VERSION
+        value: "3.12.0"
+      # REQUIRED for public deployments: set a "username:password" value
+      # for this in the Render dashboard before going live. With it set,
+      # every file-serving route requires login (401 + browser prompt
+      # for anonymous visitors). Never deploy publicly without it.
+      - key: SNAPDROPX_AUTH
+        sync: false
+      # Optional:
+      # - key: SNAPDROPX_DIR
+      #   value: "."
+      # - key: SNAPDROPX_MAX_UPLOAD_MB
+      #   value: "100"
